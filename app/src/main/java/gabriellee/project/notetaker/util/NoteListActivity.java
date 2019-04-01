@@ -1,8 +1,9 @@
-package gabriellee.project.notetaker.Activity;
+package gabriellee.project.notetaker.util;
 
+import android.arch.lifecycle.Observer;
 import android.content.Intent;
 import android.support.annotation.NonNull;
-import android.support.design.widget.FloatingActionButton;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -11,14 +12,14 @@ import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.Log;
 import android.view.View;
-import android.widget.LinearLayout;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import gabriellee.project.notetaker.Adapters.NotesRecyclerAdapter;
 import gabriellee.project.notetaker.Models.Note;
+import gabriellee.project.notetaker.Persistence.NoteRepository;
 import gabriellee.project.notetaker.R;
-import gabriellee.project.notetaker.util.VerticalSpacingItemDecorator;
 
 public class NoteListActivity extends AppCompatActivity implements NotesRecyclerAdapter.OnNoteListener,
         View.OnClickListener {
@@ -32,7 +33,7 @@ public class NoteListActivity extends AppCompatActivity implements NotesRecycler
     //VARS
     private ArrayList<Note> mNotes = new ArrayList<>();
     private NotesRecyclerAdapter mNotesRecyclerAdapter;
-
+    private NoteRepository mNoteRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,11 +43,29 @@ public class NoteListActivity extends AppCompatActivity implements NotesRecycler
 
         findViewById(R.id.fab).setOnClickListener(this);
 
+        mNoteRepository = new NoteRepository(this);
+
         initRecyclerView();
-        insertFakeNoteS();
+        retrieveNotes();
+
 
         setSupportActionBar((Toolbar)findViewById(R.id.notes_toolbar));
         setTitle("Notes");
+    }
+
+    private void retrieveNotes(){
+        mNoteRepository.retrieveNotesTask().observe(this, new Observer<List<Note>>() {
+            @Override
+            public void onChanged(@Nullable List<Note> notes) {
+                if(mNotes.size() > 0){
+                    mNotes.clear();
+                }
+                if(notes != null) {
+                    mNotes.addAll(notes);
+                }
+                mNotesRecyclerAdapter.notifyDataSetChanged();
+            }
+        });
     }
 
     private void insertFakeNoteS() {
@@ -88,6 +107,7 @@ public class NoteListActivity extends AppCompatActivity implements NotesRecycler
     private void deleteNote(Note note) {
         mNotes.remove(note);
         mNotesRecyclerAdapter.notifyDataSetChanged();
+        mNoteRepository.deleteNode(note);
 
     }
 

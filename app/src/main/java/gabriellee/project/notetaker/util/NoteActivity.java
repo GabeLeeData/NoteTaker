@@ -1,9 +1,11 @@
-package gabriellee.project.notetaker.Activity;
+package gabriellee.project.notetaker.util;
 
 import android.app.Activity;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.support.v7.app.AppCompatActivity;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -16,11 +18,12 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import gabriellee.project.notetaker.Models.Note;
+import gabriellee.project.notetaker.Persistence.NoteRepository;
 import gabriellee.project.notetaker.R;
 import gabriellee.project.notetaker.util.LineEditText;
 
 public class NoteActivity extends AppCompatActivity implements View.OnTouchListener, GestureDetector.OnGestureListener,
-GestureDetector.OnDoubleTapListener, View.OnClickListener{
+GestureDetector.OnDoubleTapListener, View.OnClickListener, TextWatcher {
 
     private static final String TAG = "NoteActivity";
     private static final int EDIT_MODE_ENABLED = 1;
@@ -38,6 +41,8 @@ GestureDetector.OnDoubleTapListener, View.OnClickListener{
     private Note mInitialNote;
     private GestureDetector mGestureDetector;
     private int mMode;
+    private NoteRepository mNoteRepository;
+    private Note mFinalNote;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,6 +55,9 @@ GestureDetector.OnDoubleTapListener, View.OnClickListener{
         mBackArrowContainer = findViewById(R.id.black_arrow_container);
         mCheck = findViewById(R.id.toolbar_check);
         mBackArrow = findViewById(R.id.toolbar_back_arrow);
+        mEditTitle.addTextChangedListener(this);
+
+        mNoteRepository = new NoteRepository(this);
 
         if(getIncomingIntent()) {
             //this is a new note, (EDIT MODE)
@@ -68,6 +76,12 @@ GestureDetector.OnDoubleTapListener, View.OnClickListener{
     private boolean getIncomingIntent(){
         if(getIntent().hasExtra("selected_note")) {
             mInitialNote = getIntent().getParcelableExtra("selected_note");
+
+            mFinalNote = new Note();
+            mFinalNote.setTitle(mInitialNote.getTitle());
+            mFinalNote.setContents(mInitialNote.getContents());
+            mFinalNote.setTimestamp(mInitialNote.getTimestamp());
+            mFinalNote.setId(mInitialNote.getId());
 //            Log.d(TAG, "getIncomingIntent: " + incomingNote.toString());
 
             mMode = EDIT_MODE_DISABLED;
@@ -77,6 +91,22 @@ GestureDetector.OnDoubleTapListener, View.OnClickListener{
         mMode = EDIT_MODE_ENABLED;
         mIsNewNote = true;
         return true;
+    }
+
+    private void saveChanges() {
+        if(mIsNewNote) {
+            saveNewNote();
+        } else {
+            updateNote();
+        }
+    }
+
+    private void updateNote(){
+        mNoteRepository.updateNote(mFinalNote);
+    }
+
+    private void saveNewNote(){
+        mNoteRepository.insertNoteTask(mFinalNote);
     }
 
     private void setListeners(){
@@ -110,7 +140,19 @@ GestureDetector.OnDoubleTapListener, View.OnClickListener{
 
         disableContentInteraction();
 
+        String temp = mLinedEditText.getText().toString();
+        temp = temp.replace("\n", "");
+        temp = temp.replace(" ", "");
+        if(temp.length() > 0) {
+            mFinalNote.setTitle(mEditTitle.getText().toString());
+            mFinalNote.setContents(mLinedEditText.getText().toString());
+            String timestamp = Utility.getCurrentTimestamp();
+            mFinalNote.setTimestamp(timestamp);
 
+            if (!mFinalNote.getContents().equals(mInitialNote.getContents()) || !mFinalNote.getTitle().equals(mInitialNote.getTitle())) {
+                saveChanges();
+            }
+        }
     }
 
     private void hideSoftKeyboard() {
@@ -146,6 +188,11 @@ GestureDetector.OnDoubleTapListener, View.OnClickListener{
     private void setNewNoteProperties() {
         mViewTitle.setText("Note Title");
         mEditTitle.setText("Note Title");
+
+        mInitialNote = new Note();
+        mFinalNote = new Note();
+        mInitialNote.setTitle("Note Title");
+        mFinalNote.setTitle("Note Title");
     }
 
     @Override
@@ -247,5 +294,20 @@ GestureDetector.OnDoubleTapListener, View.OnClickListener{
         if(mMode == EDIT_MODE_ENABLED){
             enableEditMode();
         }
+    }
+
+    @Override
+    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+    }
+
+    @Override
+    public void onTextChanged(CharSequence s, int start, int before, int count) {
+        mViewTitle.setText(s.toString());
+    }
+
+    @Override
+    public void afterTextChanged(Editable s) {
+
     }
 }

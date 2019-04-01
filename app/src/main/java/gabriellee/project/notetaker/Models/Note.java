@@ -1,11 +1,26 @@
 package gabriellee.project.notetaker.Models;
 
+import android.arch.persistence.room.ColumnInfo;
+import android.arch.persistence.room.Entity;
+import android.arch.persistence.room.Ignore;
+import android.arch.persistence.room.PrimaryKey;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+
+@Entity(tableName = "notes")
 public class Note implements Parcelable {
+
+    @PrimaryKey(autoGenerate = true)
+    private int id;
+
+    @ColumnInfo(name = "title")
     private String mTitle;
+
+    @ColumnInfo(name = "content")
     private String mContents;
+
+    @ColumnInfo(name = "timestamp")
     private String mTimestamp;
 
     public Note(String title, String contents, String timestamp) {
@@ -14,11 +29,13 @@ public class Note implements Parcelable {
         mTimestamp = timestamp;
     }
 
+    @Ignore
     public Note() {
 
     }
 
     protected Note(Parcel in) {
+        id = in.readInt();
         mTitle = in.readString();
         mContents = in.readString();
         mTimestamp = in.readString();
@@ -60,13 +77,12 @@ public class Note implements Parcelable {
         mTimestamp = timestamp;
     }
 
-    @Override
-    public String toString() {
-        return "Note{" +
-                "mTitle='" + mTitle + '\'' +
-                ", mContents='" + mContents + '\'' +
-                ", mTimestamp='" + mTimestamp + '\'' +
-                '}';
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     @Override
@@ -76,8 +92,19 @@ public class Note implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
+        dest.writeInt(id);
         dest.writeString(mTitle);
         dest.writeString(mContents);
         dest.writeString(mTimestamp);
+    }
+
+    @Override
+    public String toString() {
+        return "Note{" +
+                "id=" + id +
+                ", mTitle='" + mTitle + '\'' +
+                ", mContents='" + mContents + '\'' +
+                ", mTimestamp='" + mTimestamp + '\'' +
+                '}';
     }
 }
